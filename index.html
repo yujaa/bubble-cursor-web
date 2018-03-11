@@ -239,8 +239,11 @@
               if (dist(center, targets[j][0]) < rad+targets[j][1]) 
                   collision = true;
 
-            if(!collision)
-              targets.push([center,rad]);
+              if (dist(center, targets[j][0]) < targets[j][1]+rad+effectivewidth)
+                  collision = true;
+
+              if(!collision)
+                targets.push([center,rad]);
           }
         }
         return targets;
