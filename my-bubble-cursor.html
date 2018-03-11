@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <script type = "text/javascript" src="http://d3js.org/d3.v3.js"></script>
+  <style>
+    svg
+    {
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body>
+  <div id = "board">
+  	<script>
+      //SCREEN SIZE
+  	  var width = 800;
+  	  var height = 600;
+z
+      //TARGETS
+      var NUM_OF_TARGET = 20;
+      var TARGET_MAX_RADIUS = 10;
+      var TARGET_MIN_RADIUS = 25;
+      var targets =[];
+
+      var currentTargetIndex;
+      var goalTarget;
+      //CURSOR POSITION
+      var cursorX;
+      var cursorY;
+      var cursorRadius = 0;
+
+  	  //Define svg in board
+  	  var svg = d3.select("#board")
+  	      .append("svg:svg")
+				  .attr("width", width)
+				  .attr("height", height);
+
+	    svg.append("rect")
+		  .attr("class","backgroundRect")
+          .attr("width", width)
+          .attr("height", height)
+          .attr("fill","white");
+
+
+      //Function: Calculate distance
+      function dist(point1, point2) {
+        var x_diff = point1[0] - point2[0];
+        var y_diff = point1[1] - point2[1];
+        return Math.sqrt((x_diff*x_diff) + (y_diff*y_diff));
+      }
+
+      //////////////////////////////////////////
+      ///////////TARGETS////////////////////////
+      function placeTargets() {
+        var targets = []; //array for targets
+        for (var i = 0; i<NUM_OF_TARGET;i++) {
+          var collision = true;
+          while (collision) {
+            // Randomly set size and place of the target
+            var center = [Math.random() * (width-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS, Math.random() * (height-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS];
+           
+            var rad = Math.random()*(TARGET_MAX_RADIUS - TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS;
+
+            // Check collisions
+            collision = false;
+            for(var j = 0; j < targets.length; j++)
+              if (dist(center, targets[j][0]) < rad+targets[j][1]) 
+                  collision = true;
+
+            if(!collision)
+              targets.push([center,rad]);
+          }
+        }
+        return targets;
+      }
+
+      //Find target that is captured by cursor
+      function getCapturedTarget()
+      {
+        var distList = [];
+        var containList = [];
+        var intersectList = [];
+        var minIndex  =0;
+        var secondMinIndex =0;
+
+        for(var i= 0; i< NUM_OF_TARGET; i++){
+
+          var curDist = dist([cursorX, cursorY],targets[i][0]);
+          distList.push(curDist);
+
+          targetRadius = targets[i][1];
+          containList.push(curDist+targetRadius);
+          intersectList.push(curDist-targetRadius);
+
+          if(intersectList[i] < intersectList[minIndex]){
+            minIndex = i;     
+          } 
+        }
+
+        //Get second minimum index
+        secondMinIdx = (minIndex+1) % NUM_OF_TARGET;
+        for(var i= 0; i< NUM_OF_TARGET; i++){
+          if (i != minIndex && (intersectList[i] < intersectList[secondMinIdx])) {
+            secondMinIdx = i;
+          }
+        }
+
+        cursorRadius = Math.min(containList[minIndex], intersectList[secondMinIdx]);
+
+        svg.select(".bubbleCursor")
+            .attr("cx",cursorX)
+            .attr("cy",cursorY)
+            .attr("r",cursorRadius);
+
+        //Morphing case
+        if(cursorRadius < containList[minIndex]) {
+          svg.select(".morphing")
+              .attr("cx",targets[minIndex][0][0])
+              .attr("cy",targets[minIndex][0][1])
+              .attr("r",targets[minIndex][1]+7);
+        } 
+        else {
+          svg.select(".morphing")
+              .attr("cx",0)
+              .attr("cy",0)
+              .attr("r",0);
+        }
+
+        return minIndex;
+      } 
+
+      //Change color of target which is selected(captured)
+      function changeColor()
+      {
+        svg.selectAll(".targetCircles")
+            .attr("fill",function(d,i){
+              if(i == goalTarget)
+                return "lightblue";
+              else if(i==currentTargetIndex)
+                return "#42f44e";
+              else
+                return "white";
+            });
+      }
+
+
+////////////////////////////////////////////////////////////////////////
+
+      
+      targets = placeTargets();
+      goalTarget = Math.floor(Math.random()*targets.length);
+      //////////////////////////////////////////
+      ///////////CURSOR/////////////////////////
+      //Bubble cursor
+      svg.append("circle")
+          .attr("class","bubbleCursor")
+          .attr("cx",0)
+          .attr("cy",0)
+          .attr("r",cursorRadius)
+          .attr("fill","lightgray");
+
+      //Handle mousemove events
+      svg.on("mousemove", function() {
+          svg.select(".bubbleCursor")
+            .attr("cx",d3.mouse(this)[0])
+            .attr("cy",d3.mouse(this)[1]);
+          cursorX = d3.mouse(this)[0];
+          cursorY = d3.mouse(this)[1];
+          
+          currentTargetIndex = getCapturedTarget();
+          changeColor();
+          //markGoal();
+      });
+
+      //Morphing
+      svg.append("circle")
+        .attr("class","morphing")
+        .attr("cx",0)
+        .attr("cy",0)
+        .attr("r",0)
+        .attr("fill","lightgray");
+
+
+      svg.on("click", function() {
+      // If user clicked on the clickTarget then choose a new clickTarget
+      if(currentTargetIndex == goalTarget) {
+        var newGoalTarget = goalTarget;
+    
+      while (newGoalTarget == goalTarget)
+        newGoalTarget = Math.floor(Math.random()*targets.length);
+      
+      goalTarget = newGoalTarget;
+
+      changeColor();
+      //markGoal();
+      }
+
+
+      });
+	 
+      // Add in the target circles
+      svg.selectAll("targetCircles")
+        .data(targets)
+        .enter()
+        .append("circle")
+        .attr("class","targetCircles")
+        .attr("cx",function(d,i){return d[0][0];})
+        .attr("cy",function(d,i){return d[0][1];})
+        .attr("r",function(d,i){return d[1];})
+        .attr("stroke-width",2)
+        .attr("stroke","#42f44e")
+        .attr("fill","white");
+
+      changeColor();
+      //markGoal();
+     
+  	</script>
+  </div>
+</body>
