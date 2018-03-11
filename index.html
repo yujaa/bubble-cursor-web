@@ -35,6 +35,7 @@
 
       var currentTargetIndex;
       var goalTarget;
+      var effectivewidth;
       //CURSOR POSITION
       var cursorX;
       var cursorY;
@@ -208,7 +209,7 @@
 
         //4 distracters for EW
         //vector between two target
-        var effectivewidth= targetEffective[curEffective]*rad*1.5;
+        effectivewidth= targetEffective[curEffective]*rad*1.5;
         var normalVector = [(previousTarget[0]-nextGoalX) / targetAmplitude[curAmplitude], (previousTarget[1]-nextGoalY)/targetAmplitude[curAmplitude]];
         var distracterParam = [normalVector[0]*effectivewidth, normalVector[1]*effectivewidth];
         
@@ -236,11 +237,9 @@
             // Check collisions
             collision = false;
             for(var j = 0; j < targets.length; j++)
-              if (dist(center, targets[j][0]) < rad+targets[j][1]) 
+              if (dist(center, targets[j][0]) < rad+targets[j][1] && dist(center, targets[j][0]) < rad+targets[0][1]+effectivewidth){ 
                   collision = true;
-
-              if (dist(center, targets[j][0]) < targets[j][1]+rad+effectivewidth)
-                  collision = true;
+              }
 
               if(!collision)
                 targets.push([center,rad]);
