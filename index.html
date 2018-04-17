@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <head>
   <script type = "text/javascript" src="https://d3js.org/d3.v5.js"></script>
+  <!-- <script type = "text/javascript" src="./d3/d3.js"></script> -->
   <style>
     svg
     {
@@ -11,24 +12,26 @@
 </head>
 <body>
   <div id = "task-option">
-    <input type="radio" name="cursorType" checked="checked">Point</input>
-    <input type="radio" name="cursorType" >Bubble</input>
-    <button type="submit" id="submit">START EXPERIMENT</button>
-    <button  id="save" style="margin-left:750px">save data</button>
+    <!-- <input type="radio" name="cursorType" checked="checked">Point</input>
+    <input type="radio" name="cursorType" >Bubble</input> -->
+    <button type="submit" id="submit" style="width:200px; height:50px; display:inline">START EXPERIMENT</button>
+    <p id="message_start" style=" margin-left:20px; color:red; font-weight:bold; font-size:20px ; display:inline"">Please Click START button before start experiment.</p>
+    <button  id="save" style="width:80px; height:50px; margin-left:40px; display:inline">save data</button>
   </br></br>
   </div>
   <div id = "board">
+
   	<script>
       //SCREEN SIZE
-  	  var width = 1120;//1600;
-  	  var height = 840;//1200;
+  	  var width = 1200;
+  	  var height = 800;
 
       var timestamp_data =[];
       var last_timestamp;
-      var totalCount=-1;
+      var totalCount=0;
       var blockCount = 1;
       //TARGETS
-      var NUM_OF_TARGET = 40;
+      var NUM_OF_TARGET = 45;
       var TARGET_MAX_RADIUS = 10;
       var TARGET_MIN_RADIUS = 25;
       var targets =[];
@@ -46,11 +49,13 @@
       //8,16,24units == 1.6,3.2,4.8mm == 6,12,18px 
       var targetWidth = [6, 12, 18];
       //32, 64, 96 units ==  
-      var targetEffective = [1.33, 2, 3]; 
+      var targetEffective = [1.5, 2, 3]; 
       //192, 384, 768 units)
-      var targetAmplitude = [72.5, 145.5, 291];//[145,291,582]; 
+      var targetAmplitude = [145,291,582]; 
 
-      var targetDistracter = [0, 0.5, 1];
+      var targetDistracter = [0, 3, 6];
+
+      var practice = 1;
  
       var repeatNum= -1;
       var curAmplitude; 
@@ -58,6 +63,10 @@
       var curDistracter;
       var curEffective;
       var condNum=0;
+
+      var visibility=0;
+
+      var cursorCount =0;
 
       var condOrder = new Array();
       for(var i=0; i<3; i++)
@@ -85,17 +94,21 @@
       var nameStr;
       document.getElementById("submit").addEventListener("click", function(){
         //Select Cursor Type
-        var cType = document.getElementsByName("cursorType");
-        if(cType[0].checked) cursorType = 1;
-        if(cType[1].checked) cursorType = 2;
+
+
+        document.getElementById("submit").setAttribute("disabled", true);
+        cursorType = Math.floor(Math.random()*2) +1;
         console.log(cursorType);
         
+        visibility = 1;
+        document.getElementById("message_start").remove();
         if(cursorType ==1)
           nameStr = "Pointer";
         else
           nameStr = "Bubble Cursor"
-        alert(" Experiment Info \n\n Cursor:"+nameStr+" \n Block: "+blockCount+" of 4 \n Total Progress: "+totalCount+"of 972 \n Close this pop-up to continue the experiment.");
+        alert(" Experiment Info \n\n Cursor:"+nameStr+" \n Block: "+blockCount+" of 2 \n Total Progress: "+totalCount+"of 324 \n Close this pop-up to continue the experiment.");
         totalCount =0;
+        changeColor();
       });
 
       document.getElementById("save").addEventListener("click", function(){
@@ -116,7 +129,6 @@
       });
 
         
-
   	  //Define svg in board
   	  var svg = d3.select("#board")
   	      .append("svg:svg")
@@ -147,25 +159,77 @@
         //goal target
         totalCount++;
         console.log(totalCount);
-        if(repeatNum > 2)
+        if(repeatNum > 0) //>2
         {
           curAmplitude++;
           if(curAmplitude >2)
           {
-            curWidth = condOrder[++condNum][0];
+            condNum++;
+            console.log("condNum: "+ condNum);
+            if(condNum>26)
+            {
+              console.log("block: "+blockCount);
+              blockCount++;
+              console.log("blockCount:"+blockCount +", condNum:"+condNum);
+              if(blockCount <=2)//<=2
+              {
+                alert(" Experiment Info \n\n Cursor:"+nameStr+" \n Block: "+blockCount+" of 2\n Total Progress: "+totalCount+"of 324 \n Close this pop-up to continue the experiment.");
+                condNum = 0;
+              
+              }
+              else
+              {
+                cursorCount++;
+                if(cursorCount >1)
+                {
+                    //finish
+                    document.getElementById("save").click();
+                    alert(" Experiment Finished. Pleas find the downloaded csv file and send this file to jyu86@uic.edu. If it is not automatically downloaded, please click the 'save data' button on the top.");
+                }
+                else
+                {
+                  if(cursorType==1)
+                  {
+                    cursorType = 2;
+                    blockCount =1;
+                    repeatNum=-1;
+                    condNum =0;
+                    nameStr = "Bubble Cursor";
+
+                  }
+                  else{
+                    cursorType = 1;
+                    blockCount =1;
+                    repeatNum=-1;
+                    condNum=0;
+                    nameStr = "Pointer";
+
+                    svg.select(".bubbleCursor")
+                      .attr("cx",cursorX)
+                      .attr("cy",cursorY)
+                      .attr("r", 0.1);
+
+
+
+                    svg.select(".morphing").remove();
+                }
+
+                alert(" CURSOR TYPE CHANGED!! \n\n Experiment Info \n\n Cursor:"+nameStr+" \n Block: "+blockCount+" of 1\n Total Progress: "+totalCount+"of 324 \n Close this pop-up to continue the experiment.");
+
+                }
+              }
+
+            }
+
+            curWidth = condOrder[condNum][0];
             curDistracter = condOrder[condNum][1];
-            curEffective = condOrder[condNum][2];
+            curEffective = condOrder[condNum][Math.floor(Math.random()*3)];
             console.log("Change"+curWidth);
             shuffleOrder(targetAmplitude);
             curAmplitude=0;
           }
           repeatNum =0;
 
-          if(condNum>26)
-          {
-            blockCount++;
-            alert(" Experiment Info \n\n Cursor:"+nameStr+" \n Block: "+blockCount+" of 4 \n Total Progress: "+totalCount+"of 972 \n Close this pop-up to continue the experiment.");
-          }
 
         }
 
@@ -177,62 +241,103 @@
 
           center = [Math.random() * (width-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS, Math.random() * (height-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS];
 
+          console.log("!!!!!!!"+center);
           targets.push([center, rad]);
         }
         else
         {
-          var nextGoalX;
-          var nextGoalY;
+          var problem =false;
+          while(!problem)
+          {
+            var nextGoalX;
+            var nextGoalY;
+  
+            var nextGoalCandidX = [];
+            var nextGoalCandidY = [];
+            nextGoalX = Math.random() * targetAmplitude[curAmplitude];
+            console.log(targetAmplitude[curAmplitude]);
+            if(previousTarget[0]-nextGoalX > 4*rad )
+              nextGoalCandidX.push(previousTarget[0]-nextGoalX);
+            if(previousTarget[0]+nextGoalX < width-2*rad)
+              nextGoalCandidX.push(previousTarget[0]+nextGoalX);
+  
+            nextGoalX = nextGoalCandidX[Math.floor(Math.random()*nextGoalCandidX.length)];
+           
+            nextGoalY = Math.sqrt((targetAmplitude[curAmplitude]*targetAmplitude[curAmplitude])-(previousTarget[0]-nextGoalX)*(previousTarget[0]-nextGoalX));
+            console.log(nextGoalY);
+            if(previousTarget[1]-nextGoalY > 4*rad )
+              nextGoalCandidY.push(previousTarget[1]-nextGoalY);
+            if(previousTarget[1]+nextGoalY < height-2*rad)
+              nextGoalCandidY.push(previousTarget[1]+nextGoalY);
+      
+            nextGoalY = nextGoalCandidY[Math.floor(Math.random()*nextGoalCandidY.length)];
+            console.log(nextGoalY);
 
-              var nextGoalCandidX = [];
-              var nextGoalCandidY = [];
-              nextGoalX = Math.random() * targetAmplitude[curAmplitude];
-              if(previousTarget[0]-nextGoalX > 2*rad)
-                nextGoalCandidX.push(previousTarget[0]-nextGoalX);
-              if(previousTarget[0]+nextGoalX < width-2*rad)
-                nextGoalCandidX.push(previousTarget[0]+nextGoalX);
+            if(nextGoalY !=null && nextGoalX != null)
+              problem= true;
+          }
 
-              nextGoalX = nextGoalCandidX[Math.floor(Math.random()*nextGoalCandidX.length)];
-             
-              nextGoalY = Math.sqrt((targetAmplitude[curAmplitude]*targetAmplitude[curAmplitude])-(previousTarget[0]-nextGoalX)*(previousTarget[0]-nextGoalX));
 
-              if(previousTarget[1]-nextGoalY > 2*rad)
-                nextGoalCandidY.push(previousTarget[1]-nextGoalY);
-              if(previousTarget[1]+nextGoalY < height-2*rad)
-                nextGoalCandidY.push(previousTarget[1]+nextGoalY);
-
-              nextGoalY = nextGoalCandidY[Math.floor(Math.random()*nextGoalCandidY.length)];
-
+console.log(nextGoalY);
           //console.log(dist(previousTarget, [nextGoalX,nextGoalY]))
           targets.push([[nextGoalX,nextGoalY],rad]);
         
 
-        //4 distracters for EW
-        //vector between two target
-        effectivewidth= targetEffective[curEffective]*rad*1.5;
-        var normalVector = [(previousTarget[0]-nextGoalX) / targetAmplitude[curAmplitude], (previousTarget[1]-nextGoalY)/targetAmplitude[curAmplitude]];
-        var distracterParam = [normalVector[0]*effectivewidth, normalVector[1]*effectivewidth];
-        
-        targets.push([[nextGoalX+2*distracterParam[0], nextGoalY+2*distracterParam[1]], rad]);
-        targets.push([[nextGoalX-2*distracterParam[0], nextGoalY-2*distracterParam[1]], rad]);
+          //4 distracters for EW
+          //vector between two target
+          effectivewidth= targetEffective[curEffective]*rad*1.5;
+          var normalVector = [(previousTarget[0]-nextGoalX) / targetAmplitude[curAmplitude], (previousTarget[1]-nextGoalY)/targetAmplitude[curAmplitude]];
+          var distracterParam = [normalVector[0]*effectivewidth, normalVector[1]*effectivewidth];
+          
+          targets.push([[nextGoalX+2*distracterParam[0], nextGoalY+2*distracterParam[1]], rad]);
+          targets.push([[nextGoalX-2*distracterParam[0], nextGoalY-2*distracterParam[1]], rad]);
 
-        var perpVector = [normalVector[1], -normalVector[0]];
-        var normalVector_perp = [perpVector[0]/dist(perpVector, previousTarget), perpVector[1]/dist(perpVector, previousTarget)];
-        var distracterParam_perp = [perpVector[0]*effectivewidth, perpVector[1]*effectivewidth];
-        console.log(perpVector);
+          var perpVector = [normalVector[1], -normalVector[0]];
+          var normalVector_perp = [perpVector[0]/dist(perpVector, previousTarget), perpVector[1]/dist(perpVector, previousTarget)];
+          var distracterParam_perp = [perpVector[0]*effectivewidth, perpVector[1]*effectivewidth];
+          //console.log(curAmplitude+","+(previousTarget[1]-nextGoalY)/targetAmplitude[curAmplitude]+","+perpVector);
 
-        targets.push([[nextGoalX+2*distracterParam_perp[0], nextGoalY+2*distracterParam_perp[1]], rad]);
-        targets.push([[nextGoalX-2*distracterParam_perp[0], nextGoalY-2*distracterParam_perp[1]], rad]);
+          targets.push([[nextGoalX+2*distracterParam_perp[0], nextGoalY+2*distracterParam_perp[1]], rad]);
+          targets.push([[nextGoalX-2*distracterParam_perp[0], nextGoalY-2*distracterParam_perp[1]], rad]);
+
+          //distracters
+          var distractersX;
+          var distractersY;
+
+          
+          for(var k = 0; k < targetDistracter[curDistracter];k++)
+          {
+            var collision1= true;
+            while (collision1) {
+              if(previousTarget[k] < nextGoalX)
+                distratersX = (Math.random()*(nextGoalX-previousTarget[0])) + previousTarget[0]-targetEffective[curEffective]*rad*1.5;
+              else
+                distractersX = (Math.random()*(previousTarget[0]-nextGoalX)) + nextGoalX-targetEffective[curEffective]*rad*1.5;
+              
+            distractersY = (((distractersX-nextGoalX)/(previousTarget[0]-nextGoalX))*(previousTarget[1]-nextGoalY)+nextGoalY)+Math.random()*rad*1.5;
+            distracters_center=[distractersX, distractersY];
+
+           // Check collisions
+            collision1 = false;
+            for(var j = 0; j < targets.length; j++)
+              if (dist(distracters_center, targets[0][0]) < rad+targets[0][1]){ 
+                  collision1 = true;
+              }
+
+            if(!collision1)
+              targets.push([[distractersX, distractersY],rad]);
+          }
+          }
+
         }
 
         var targets_len =targets.length;
         for (var i = 0; i<NUM_OF_TARGET-targets_len;i++) {
           var collision = true;
           while (collision) {
-            // Randomly set size and place of the target
+            // Randomly place of the target
             center = [Math.random() * (width-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS, Math.random() * (height-2*TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS];
            
-            //rad = Math.random()*(TARGET_MAX_RADIUS - TARGET_MIN_RADIUS)+TARGET_MIN_RADIUS;
 
             // Check collisions
             collision = false;
@@ -317,36 +422,40 @@
       //Change color of target which is selected(captured)
       function changeColor()
       {
-        svg.selectAll(".targetCircles")
-            .attr("fill",function(d,i){
-              if(i==currentTargetIndex)
-              {
-                return "red";
-              }
-              if(i == goalTarget)
-                return "lime";
-              else
-                return "white";
+          if(visibility==0)
+            return;
+          svg.selectAll(".targetCircles")
+              .attr("fill",function(d,i){
+                if(i==currentTargetIndex)
+                {
+                  return "red";
+                }
+                if(i == goalTarget)
+                  return "lime";
+                else
+                  return "white";
 
-            });
+              });        
       }
 
       ///////////////////////targets////////////////////
       //Draw target circles
       function drawBoard()
       {
-        svg.selectAll(".targetCircles").remove();
-        svg.selectAll(".targetCircles")
-          .data(targets)
-          .enter()
-          .append("circle")
-          .attr("class","targetCircles")
-          .attr("cx",function(d){return d[0][0];})
-          .attr("cy",function(d){return d[0][1];})
-          .attr("r",function(d){return d[1];})
-          .attr("stroke-width",2)
-          .attr("stroke","grey")
-          .attr("fill","white");
+
+          svg.selectAll(".targetCircles").remove();
+          svg.selectAll(".targetCircles")
+            .data(targets)
+            .enter()
+            .append("circle")
+            .attr("class","targetCircles")
+            .attr("cx",function(d){return d[0][0];})
+            .attr("cy",function(d){return d[0][1];})
+            .attr("r",function(d){return d[1];})
+            .attr("stroke-width",2)
+            .attr("stroke","grey")
+            .attr("fill","white");
+          
       }
 ////////////////////////////////////////////////////////////////////////
 
@@ -386,7 +495,6 @@
         .attr("r",0)
         .attr("fill","lightgrey");
 
-
       svg.on("click", function() {
         // If user clicked on the clickTarget then choose a new clickTarget
         if(currentTargetIndex == goalTarget) {
@@ -401,15 +509,18 @@
           targets = placeTargets(targets[goalTarget][0]);
           currentTargetIndex=-1;
           goalTarget = 0;
+          
 
           drawBoard();
           changeColor();
+
         }
       });
-	 
-      drawBoard();
-      changeColor();
-     
+	     
+          drawBoard();
+          changeColor();
+  
+
   	</script>
   </div>
 </body>
